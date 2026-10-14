@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Smart Risol Vending Machine</title>
+    <style>
+        * { box-sizing: border-box; font-family: sans-serif; margin: 0; padding: 0; }
+        body { background: #f4f7f6; display: flex; justify-content: center; align-items: center; min-height: 100vh; padding: 15px; }
+        .card { background: #fff; border-radius: 16px; box-shadow: 0 8px 24px rgba(0,0,0,0.1); width: 100%; max-width: 420px; padding: 24px; text-align: center; }
+        h1 { font-size: 22px; color: #d32f2f; margin-bottom: 10px; }
+        .btn-bt { background: #0288d1; color: white; border: none; padding: 10px 15px; border-radius: 8px; font-weight: bold; margin-bottom: 15px; cursor: pointer; width: 100%; }
+        .qty-container { display: flex; justify-content: center; align-items: center; gap: 15px; margin: 15px 0; }
+        .btn-qty { background: #e0e0e0; border: none; width: 44px; height: 44px; border-radius: 50%; font-size: 22px; font-weight: bold; }
+        .qty-display { font-size: 26px; font-weight: bold; }
+        .price-tag { font-size: 18px; font-weight: bold; color: #2e7d32; margin-bottom: 15px; }
+        .btn-primary { background: #d32f2f; color: white; border: none; width: 100%; padding: 14px; border-radius: 10px; font-size: 16px; font-weight: bold; cursor: pointer; }
+        .btn-primary:disabled { background: #ccc; }
+        #qr-section { display: none; margin-top: 15px; }
+        #qr-image { width: 200px; height: 200px; margin: 10px auto; display: block; }
+        #status-box { margin-top: 15px; padding: 10px; border-radius: 8px; font-size: 13px; font-weight: bold; background: #e8f5e9; color: #2e7d32; }
+        .admin-toggle { margin-top: 20px; font-size: 12px; color: #888; text-decoration: underline; cursor: pointer; }
+        #admin-panel { display: none; margin-top: 10px; background: #fafafa; padding: 10px; border-radius: 8px; text-align: left; font-size: 11px; }
+        #admin-panel input { width: 100%; padding: 5px; margin: 3px 0 8px 0; }
+    </style>
+</head>
+<body>
+
+<div class="card">
+    <h1>🥐 Vending Risol</h1>
+    
+    <!-- Tombol Hubungkan Bluetooth -->
+    <button class="btn-bt" id="btn-connect-bt" onclick="hubungkanBluetooth()">📡 Hubungkan ke ESP32 (Bluetooth)</button>
+
+    <div class="qty-container">
+        <button class="btn-qty" onclick="ubahQty(-1)">-</button>
+        <span class="qty-display" id="label-qty">1</span>
+        <button class="btn-qty" onclick="ubahQty(1)">+</button>
+    </div>
+
+    <div class="price-tag" id="label-total">Total: Rp 5.000</div>
+
+    <button class="btn-primary" id="btn-beli" onclick="prosesBeli()">BAYAR QRIS</button>
+
+    <div id="qr-section">
+        <img id="qr-image" src="" alt="QRIS">
+    </div>
+
+    <div id="status-box">Sambungkan Bluetooth terlebih dahulu</div>
+
+    <div class="admin-toggle" onclick="toggleAdmin()">⚙️ Pengaturan Admin</div>
+    <div id="admin-panel">
+        <label>URL Apps Script Proxy:</label>
+        <input type="text" id="cfg-proxy" value="https://script.google.com/macros/s/XXXXXXXX/exec">
+        
+        <label>Secret Key Apps Script:</label>
+        <input type="text" id="cfg-secret" value="GANTI_DENGAN_KATA_RAHASIA">
+    </div>
+</div>
+
+<script>
+    let bluetoothDevice = null;
+    let gattCharacteristic = null;
+    let qty = 1;
+    let currentOrderId = "";
+    let pollTimer = null;
+
+    // UUID Standar untuk Bluetooth ESP32 Serial (BLE)
+    const SERVICE_UUID = "6e400001-b5a3-f393-e0a9-e50e24dcca9e";
+    const CHARACTERISTIC_UUID = "6e400002-b5a3-f393-e0a9-e50e24dcca9e";
+
+    async function hubungkanBluetooth() {
+        try {
+            document.getElementById('status-box').innerText = "Mencari perangkat Bluetooth...";
+            bluetoothDevice = await navigator.bluetooth.requestDevice({
+                filters: [{ name: 'VendingRisol_ESP32' }],
+                optionalServices: [SERVICE_UUID]
+            });
+
+            const server = await bluetoothDevice.gatt.connect();
+            const service = await server.getPrimaryService(SERVICE_UUID);
+            gattCharacteristic = await service.getCharacteristic(CHARACTERISTIC_UUID);
+
+            document.getElementById('status-box').innerText = "Terhubung ke ESP32 via Bluetooth!";
+            document.getElementById('btn-connect-bt').style.background = "#2e7d32";
+            document.getElementById('btn-connect-bt').innerText = "✓ Bluetooth Terhubung";
+        } catch (error) {
+            document.getElementById('status-box').innerText = "Gagal koneksi Bluetooth: " + error;
+        }
+    }
+
+    async function kirimPerintahBluetooth(perintah) {
+        if (!gattCharacteristic) {
+            alert("Bluetooth belum terhubung ke ESP32!");
+            return;
+        }
+        const encoder = new TextEncoder();
+        await gattCharacteristic.writeValue(encoder.encode(perintah + "\n"));
+    }
+
+    function ubahQty(delta) {
+        qty += delta;
+        if (qty < 1) qty = 1;
+        if (qty > 5) qty = 5;
+        document.getElementById('label-qty').innerText = qty;
+        document.getElementById('label-total').innerText = "Total: Rp " + (qty * 5000).toLocaleString('id-ID');
+    }
+
+    async function prosesBeli() {
+        if (!gattCharacteristic) {
+            alert("Sambungkan Bluetooth ke ESP32 dulu!");
+            return;
+        }
+
+        const proxyUrl = document.getElementById('cfg-proxy').value;
+        const secret = document.getElementById('cfg-secret').value;
+
+        document.getElementById('status-box').innerText = "Membuat QRIS...";
+
+        try {
+            const res = await fetch(`${proxyUrl}?secret=${encodeURIComponent(secret)}&action=charge&qty=${qty}`);
+            const data = await res.json();
+
+            if (data.ok) {
+                currentOrderId = data.order_id;
+                document.getElementById('qr-image').src = data.qr_url;
+                document.getElementById('qr-section').style.display = 'block';
+                document.getElementById('status-box').innerText = "Scan QRIS untuk membayar...";
+                
+                pollTimer = setInterval(cekStatus, 3000);
+            }
+        } catch (err) {
+            document.getElementById('status-box').innerText = "Gagal koneksi internet/proxy.";
+        }
+    }
+
+    async function cekStatus() {
+        const proxyUrl = document.getElementById('cfg-proxy').value;
+        const secret = document.getElementById('cfg-secret').value;
+
+        try {
+            const res = await fetch(`${proxyUrl}?secret=${encodeURIComponent(secret)}&action=status&order_id=${encodeURIComponent(currentOrderId)}`);
+            const data = await res.json();
+
+            if (data.ok && (data.status === "settlement" || data.status === "capture")) {
+                clearInterval(pollTimer);
+                document.getElementById('status-box').innerText = "LUNAS! Mengeluarkan risol...";
+                klaimDanDispense();
+            }
+        } catch (e) {}
+    }
+
+    async function klaimDanDispense() {
+        const proxyUrl = document.getElementById('cfg-proxy').value;
+        const secret = document.getElementById('cfg-secret').value;
+
+        const res = await fetch(`${proxyUrl}?secret=${encodeURIComponent(secret)}&action=claim&order_id=${encodeURIComponent(currentOrderId)}`);
+        const data = await res.json();
+
+        if (data.ok) {
+            // Kirim perintah DISPENSE ke ESP32 via Bluetooth
+            await kirimPerintahBluetooth("DISPENSE_" + data.qty);
+            document.getElementById('qr-section').style.display = 'none';
+            document.getElementById('status-box').innerText = "Risol sedang dikeluarkan. Selamat menikmati!";
+        }
+    }
+
+    function toggleAdmin() {
+        const panel = document.getElementById('admin-panel');
+        panel.style.display = panel.style.display === 'block' ? 'none' : 'block';
+    }
+</script>
+</body>
+</html>
