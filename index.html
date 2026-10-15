@@ -107,12 +107,15 @@
     }
 
     async function prosesBeli() {
-        if (!gattCharacteristic) {
-            alert("Sambungkan Bluetooth ke ESP32 dulu!");
-            return;
-        }
+    // Pengecekan Bluetooth dimatikan sementara untuk tes QRIS tanpa ESP32
+    /*
+    if (!gattCharacteristic) {
+        alert("Sambungkan Bluetooth ke ESP32 dulu!");
+        return;
+    }
+    */
 
-        const proxyUrl = document.getElementById('cfg-proxy').value;
+    const proxyUrl = document.getElementById('cfg-proxy').value;
         const secret = document.getElementById('cfg-secret').value;
 
         document.getElementById('status-box').innerText = "Membuat QRIS...";
