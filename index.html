@@ -5,49 +5,243 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Smart Risol Vending Machine</title>
     <style>
-        * { box-sizing: border-box; font-family: sans-serif; margin: 0; padding: 0; }
-        body { background: #f4f7f6; display: flex; justify-content: center; align-items: center; min-height: 100vh; padding: 15px; }
-        .card { background: #fff; border-radius: 16px; box-shadow: 0 8px 24px rgba(0,0,0,0.1); width: 100%; max-width: 420px; padding: 24px; text-align: center; }
-        h1 { font-size: 22px; color: #d32f2f; margin-bottom: 10px; }
-        .btn-bt { background: #0288d1; color: white; border: none; padding: 10px 15px; border-radius: 8px; font-weight: bold; margin-bottom: 15px; cursor: pointer; width: 100%; }
-        .qty-container { display: flex; justify-content: center; align-items: center; gap: 15px; margin: 15px 0; }
-        .btn-qty { background: #e0e0e0; border: none; width: 44px; height: 44px; border-radius: 50%; font-size: 22px; font-weight: bold; }
-        .qty-display { font-size: 26px; font-weight: bold; }
-        .price-tag { font-size: 18px; font-weight: bold; color: #2e7d32; margin-bottom: 15px; }
-        .btn-primary { background: #d32f2f; color: white; border: none; width: 100%; padding: 14px; border-radius: 10px; font-size: 16px; font-weight: bold; cursor: pointer; }
-        .btn-primary:disabled { background: #ccc; }
-        #qr-section { display: none; margin-top: 15px; }
-        #qr-image { width: 200px; height: 200px; margin: 10px auto; display: block; }
-        #status-box { margin-top: 15px; padding: 10px; border-radius: 8px; font-size: 13px; font-weight: bold; background: #e8f5e9; color: #2e7d32; }
-        .admin-toggle { margin-top: 20px; font-size: 12px; color: #888; text-decoration: underline; cursor: pointer; }
-        #admin-panel { display: none; margin-top: 10px; background: #fafafa; padding: 10px; border-radius: 8px; text-align: left; font-size: 11px; }
-        #admin-panel input { width: 100%; padding: 5px; margin: 3px 0 8px 0; }
+        * { box-sizing: border-box; font-family: 'Poppins', 'Segoe UI', Roboto, sans-serif; margin: 0; padding: 0; }
+        
+        body { 
+            background: linear-gradient(135deg, #fef2f2 0%, #fff7ed 100%); 
+            color: #1f2937; 
+            display: flex; 
+            justify-content: center; 
+            align-items: center; 
+            min-height: 100vh; 
+            padding: 16px; 
+        }
+
+        .card { 
+            background: #ffffff; 
+            border-radius: 24px; 
+            box-shadow: 0 20px 40px rgba(0,0,0,0.08), 0 1px 3px rgba(0,0,0,0.05); 
+            width: 100%; 
+            max-width: 420px; 
+            padding: 28px 24px; 
+            text-align: center; 
+            position: relative;
+            overflow: hidden;
+            border: 1px solid rgba(255,255,255,0.8);
+        }
+
+        .brand-badge {
+            background: #fee2e2;
+            color: #dc2626;
+            font-size: 12px;
+            font-weight: 700;
+            padding: 6px 16px;
+            border-radius: 50px;
+            display: inline-block;
+            margin-bottom: 12px;
+            letter-spacing: 0.5px;
+            text-transform: uppercase;
+        }
+
+        h1 { font-size: 24px; color: #991b1b; font-weight: 800; margin-bottom: 4px; }
+        p.subtitle { font-size: 13px; color: #6b7280; margin-bottom: 20px; }
+
+        .btn-bt { 
+            background: #0288d1; 
+            color: white; 
+            border: none; 
+            padding: 12px 18px; 
+            border-radius: 12px; 
+            font-weight: 600; 
+            font-size: 13px;
+            margin-bottom: 20px; 
+            cursor: pointer; 
+            width: 100%; 
+            box-shadow: 0 4px 12px rgba(2, 136, 209, 0.25);
+            transition: all 0.2s ease;
+        }
+        .btn-bt:active { transform: scale(0.98); }
+
+        /* Container Pilihan Jumlah (Bisa Terkunci) */
+        .order-selector-box {
+            background: #fafafa;
+            border: 2px solid #f3f4f6;
+            border-radius: 18px;
+            padding: 16px;
+            margin-bottom: 20px;
+            transition: all 0.3s ease;
+        }
+        .order-selector-box.disabled {
+            opacity: 0.4;
+            pointer-events: none;
+            filter: grayscale(80%);
+        }
+
+        .qty-container { display: flex; justify-content: center; align-items: center; gap: 20px; margin: 10px 0; }
+        
+        .btn-qty { 
+            background: #ffffff; 
+            border: 2px solid #e5e7eb; 
+            color: #1f2937;
+            width: 48px; 
+            height: 48px; 
+            border-radius: 14px; 
+            font-size: 22px; 
+            font-weight: bold; 
+            cursor: pointer;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+            transition: all 0.2s;
+        }
+        .btn-qty:active { background: #f3f4f6; transform: scale(0.95); }
+
+        .qty-display { font-size: 32px; font-weight: 800; color: #111827; min-width: 40px; }
+
+        .price-tag { font-size: 20px; font-weight: 800; color: #059669; margin-top: 8px; }
+
+        .btn-primary { 
+            background: linear-gradient(135deg, #dc2626 0%, #b91c1c 100%); 
+            color: white; 
+            border: none; 
+            width: 100%; 
+            padding: 16px; 
+            border-radius: 14px; 
+            font-size: 16px; 
+            font-weight: 700; 
+            cursor: pointer; 
+            box-shadow: 0 8px 20px rgba(220, 38, 38, 0.3);
+            transition: all 0.2s ease;
+        }
+        .btn-primary:active { transform: scale(0.98); }
+        .btn-primary:disabled { background: #d1d5db; box-shadow: none; cursor: not-allowed; }
+
+        /* Section QRIS Modern */
+        #qr-section { 
+            display: none; 
+            margin-top: 20px; 
+            background: #ffffff;
+            border: 2px solid #fef3c7;
+            border-radius: 20px;
+            padding: 20px 16px;
+            box-shadow: 0 10px 25px rgba(217, 119, 6, 0.1);
+            animation: fadeIn 0.4s ease-out;
+        }
+
+        .total-pay-box {
+            background: #ecfdf5;
+            border: 1px solid #a7f3d0;
+            border-radius: 12px;
+            padding: 12px;
+            margin-bottom: 14px;
+        }
+        .total-pay-label { font-size: 12px; color: #047857; font-weight: 600; text-transform: uppercase; }
+        .total-pay-amount { font-size: 26px; font-weight: 800; color: #065f46; }
+
+        #qr-image { 
+            width: 210px; 
+            height: 210px; 
+            margin: 12px auto; 
+            display: block; 
+            border-radius: 14px;
+            border: 1px solid #e5e7eb;
+            padding: 6px;
+            background: #fff;
+        }
+
+        .qris-warning-badge {
+            background: #fffbebf5;
+            border: 1px solid #fde68a;
+            color: #92400e;
+            font-size: 12px;
+            font-weight: 600;
+            padding: 10px;
+            border-radius: 10px;
+            margin-top: 10px;
+            line-height: 1.4;
+        }
+
+        .btn-secondary {
+            background: #f3f4f6;
+            color: #374151;
+            border: 1px solid #d1d5db;
+            width: 100%;
+            padding: 12px;
+            border-radius: 10px;
+            font-size: 13px;
+            font-weight: 600;
+            margin-top: 14px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .btn-secondary:hover { background: #e5e7eb; }
+
+        /* Status Display */
+        #status-box { 
+            margin-top: 18px; 
+            padding: 12px 16px; 
+            border-radius: 12px; 
+            font-size: 13px; 
+            font-weight: 700; 
+            background: #f3f4f6; 
+            color: #4b5563; 
+        }
+
+        .admin-toggle { margin-top: 24px; font-size: 11px; color: #9ca3af; text-decoration: underline; cursor: pointer; }
+        #admin-panel { display: none; margin-top: 12px; background: #f9fafb; padding: 12px; border-radius: 10px; text-align: left; font-size: 11px; border: 1px solid #e5e7eb; }
+        #admin-panel input { width: 100%; padding: 8px; margin: 4px 0 10px 0; border: 1px solid #d1d5db; border-radius: 6px; }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
     </style>
 </head>
 <body>
 
 <div class="card">
+    <span class="brand-badge">OTOMATIS & SEGAR</span>
     <h1>🥐 Vending Risol</h1>
+    <p class="subtitle">Pilih jumlah, bayar QRIS, risol keluar otomatis</p>
     
     <!-- Tombol Hubungkan Bluetooth -->
     <button class="btn-bt" id="btn-connect-bt" onclick="hubungkanBluetooth()">📡 Hubungkan ke ESP32 (Bluetooth)</button>
 
-    <div class="qty-container">
-        <button class="btn-qty" onclick="ubahQty(-1)">-</button>
-        <span class="qty-display" id="label-qty">1</span>
-        <button class="btn-qty" onclick="ubahQty(1)">+</button>
+    <!-- Pilihan Jumlah Risol -->
+    <div class="order-selector-box" id="selector-box">
+        <p style="font-size: 12px; color: #6b7280; font-weight: 600;">JUMLAH RISOL</p>
+        <div class="qty-container">
+            <button class="btn-qty" id="btn-minus" onclick="ubahQty(-1)">-</button>
+            <span class="qty-display" id="label-qty">1</span>
+            <button class="btn-qty" id="btn-plus" onclick="ubahQty(1)">+</button>
+        </div>
+        <div class="price-tag" id="label-total">Total: Rp 5.000</div>
     </div>
 
-    <div class="price-tag" id="label-total">Total: Rp 5.000</div>
+    <!-- Tombol Beli -->
+    <button class="btn-primary" id="btn-beli" onclick="prosesBeli()">BAYAR DENGAN QRIS</button>
 
-    <button class="btn-primary" id="btn-beli" onclick="prosesBeli()">BAYAR QRIS</button>
-
+    <!-- Section Tampilan QRIS -->
     <div id="qr-section">
-        <img id="qr-image" src="" alt="QRIS">
+        <div class="total-pay-box">
+            <div class="total-pay-label">Total Tagihan Pembayaran</div>
+            <div class="total-pay-amount" id="qris-total-amount">Rp 5.000</div>
+        </div>
+
+        <p style="font-size: 12px; color: #4b5563; font-weight: 600;">Scan QRIS di bawah ini:</p>
+        <img id="qr-image" src="" alt="Kode QRIS Pembayaran">
+
+        <div class="qris-warning-badge">
+            ⚠️ <strong>PERHATIAN:</strong><br>1 Kode QRIS ini hanya berlaku untuk 1 kali pembayaran / 1 pembeli.
+        </div>
+
+        <button class="btn-secondary" onclick="batalkanTransaksi('Pesanan dibatalkan. Silakan buat pesanan baru.')">
+            🔄 Batal / Buat Pesanan Baru
+        </button>
     </div>
 
-    <div id="status-box">Sambungkan Bluetooth terlebih dahulu</div>
+    <!-- Kotak Pesan Status -->
+    <div id="status-box">Sambungkan Bluetooth / Pilih jumlah risol</div>
 
+    <!-- Panel Pengaturan Admin -->
     <div class="admin-toggle" onclick="toggleAdmin()">⚙️ Pengaturan Admin</div>
     <div id="admin-panel">
         <label>URL Apps Script Proxy:</label>
@@ -61,11 +255,11 @@
 <script>
     let bluetoothDevice = null;
     let gattCharacteristic = null;
+    let HARGA_PER_PCS = 5000;
     let qty = 1;
     let currentOrderId = "";
     let pollTimer = null;
 
-    // UUID Standar untuk Bluetooth ESP32 Serial (BLE)
     const SERVICE_UUID = "6e400001-b5a3-f393-e0a9-e50e24dcca9e";
     const CHARACTERISTIC_UUID = "6e400002-b5a3-f393-e0a9-e50e24dcca9e";
 
@@ -82,18 +276,20 @@
             gattCharacteristic = await service.getCharacteristic(CHARACTERISTIC_UUID);
 
             document.getElementById('status-box').innerText = "Terhubung ke ESP32 via Bluetooth!";
-            document.getElementById('btn-connect-bt').style.background = "#2e7d32";
+            document.getElementById('status-box').style.background = "#dcfce7";
+            document.getElementById('status-box').style.color = "#15803d";
+            
+            document.getElementById('btn-connect-bt').style.background = "#059669";
             document.getElementById('btn-connect-bt').innerText = "✓ Bluetooth Terhubung";
         } catch (error) {
-            document.getElementById('status-box').innerText = "Gagal koneksi Bluetooth: " + error;
+            document.getElementById('status-box').innerText = "Gagal koneksi Bluetooth.";
+            document.getElementById('status-box').style.background = "#fee2e2";
+            document.getElementById('status-box').style.color = "#b91c1c";
         }
     }
 
     async function kirimPerintahBluetooth(perintah) {
-        if (!gattCharacteristic) {
-            alert("Bluetooth belum terhubung ke ESP32!");
-            return;
-        }
+        if (!gattCharacteristic) return;
         const encoder = new TextEncoder();
         await gattCharacteristic.writeValue(encoder.encode(perintah + "\n"));
     }
@@ -102,23 +298,22 @@
         qty += delta;
         if (qty < 1) qty = 1;
         if (qty > 5) qty = 5;
+        
+        let totalHarga = qty * HARGA_PER_PCS;
         document.getElementById('label-qty').innerText = qty;
-        document.getElementById('label-total').innerText = "Total: Rp " + (qty * 5000).toLocaleString('id-ID');
+        document.getElementById('label-total').innerText = "Total: Rp " + totalHarga.toLocaleString('id-ID');
     }
 
     async function prosesBeli() {
-    // Pengecekan Bluetooth dimatikan sementara untuk tes QRIS tanpa ESP32
-    /*
-    if (!gattCharacteristic) {
-        alert("Sambungkan Bluetooth ke ESP32 dulu!");
-        return;
-    }
-    */
-
-    const proxyUrl = document.getElementById('cfg-proxy').value;
+        const proxyUrl = document.getElementById('cfg-proxy').value;
         const secret = document.getElementById('cfg-secret').value;
 
-        document.getElementById('status-box').innerText = "Membuat QRIS...";
+        let totalHarga = qty * HARGA_PER_PCS;
+
+        // Kunci selector jumlah agar pembeli tidak ubah saat QRIS dibuat
+        kunciPilihanJumlah(true);
+        document.getElementById('btn-beli').style.display = 'none';
+        document.getElementById('status-box').innerText = "Membuat kode QRIS...";
 
         try {
             const res = await fetch(`${proxyUrl}?secret=${encodeURIComponent(secret)}&action=charge&qty=${qty}`);
@@ -127,13 +322,23 @@
             if (data.ok) {
                 currentOrderId = data.order_id;
                 document.getElementById('qr-image').src = data.qr_url;
+                
+                // Tampilkan nominal harga di atas QRIS
+                document.getElementById('qris-total-amount').innerText = "Rp " + totalHarga.toLocaleString('id-ID');
                 document.getElementById('qr-section').style.display = 'block';
-                document.getElementById('status-box').innerText = "Scan QRIS untuk membayar...";
+                
+                document.getElementById('status-box').innerText = "Menunggu pembayaran QRIS...";
+                document.getElementById('status-box').style.background = "#fef3c7";
+                document.getElementById('status-box').style.color = "#b45309";
                 
                 pollTimer = setInterval(cekStatus, 3000);
+            } else {
+                alert("Gagal membuat QRIS: " + (data.error || "Coba lagi"));
+                batalkanTransaksi("Gagal membuat QRIS.");
             }
         } catch (err) {
-            document.getElementById('status-box').innerText = "Gagal koneksi internet/proxy.";
+            alert("Gagal terhubung ke server pembayaran.");
+            batalkanTransaksi("Gagal terhubung ke server.");
         }
     }
 
@@ -147,8 +352,13 @@
 
             if (data.ok && (data.status === "settlement" || data.status === "capture")) {
                 clearInterval(pollTimer);
-                document.getElementById('status-box').innerText = "LUNAS! Mengeluarkan risol...";
+                document.getElementById('status-box').innerText = "Pembayaran LUNAS! Memverifikasi klaim...";
+                document.getElementById('status-box').style.background = "#dcfce7";
+                document.getElementById('status-box').style.color = "#15803d";
                 klaimDanDispense();
+            } else if (["expire", "cancel", "deny", "failure"].includes(data.status)) {
+                clearInterval(pollTimer);
+                batalkanTransaksi("Pembayaran dibatalkan atau kedaluwarsa.");
             }
         } catch (e) {}
     }
@@ -157,14 +367,45 @@
         const proxyUrl = document.getElementById('cfg-proxy').value;
         const secret = document.getElementById('cfg-secret').value;
 
-        const res = await fetch(`${proxyUrl}?secret=${encodeURIComponent(secret)}&action=claim&order_id=${encodeURIComponent(currentOrderId)}`);
-        const data = await res.json();
+        try {
+            const res = await fetch(`${proxyUrl}?secret=${encodeURIComponent(secret)}&action=claim&order_id=${encodeURIComponent(currentOrderId)}`);
+            const data = await res.json();
 
-        if (data.ok) {
-            // Kirim perintah DISPENSE ke ESP32 via Bluetooth
-            await kirimPerintahBluetooth("DISPENSE_" + data.qty);
-            document.getElementById('qr-section').style.display = 'none';
-            document.getElementById('status-box').innerText = "Risol sedang dikeluarkan. Selamat menikmati!";
+            if (data.ok) {
+                // Kirim perintah ke ESP32
+                await kirimPerintahBluetooth("DISPENSE_" + data.qty);
+                document.getElementById('status-box').innerText = "Lunas! Risol sedang dikeluarkan. Selamat menikmati!";
+            } else {
+                document.getElementById('status-box').innerText = "Klaim gagal: " + data.error;
+            }
+        } catch (err) {
+            document.getElementById('status-box').innerText = "Gagal memverifikasi klaim ke server.";
+        } finally {
+            setTimeout(resetTampilanAwal, 6000);
+        }
+    }
+
+    function batalkanTransaksi(pesan) {
+        clearInterval(pollTimer);
+        document.getElementById('status-box').innerText = pesan;
+        document.getElementById('status-box').style.background = "#f3f4f6";
+        document.getElementById('status-box').style.color = "#4b5563";
+        resetTampilanAwal();
+    }
+
+    function resetTampilanAwal() {
+        currentOrderId = "";
+        kunciPilihanJumlah(false);
+        document.getElementById('qr-section').style.display = 'none';
+        document.getElementById('btn-beli').style.display = 'block';
+    }
+
+    function kunciPilihanJumlah(isLocked) {
+        const box = document.getElementById('selector-box');
+        if (isLocked) {
+            box.classList.add('disabled');
+        } else {
+            box.classList.remove('disabled');
         }
     }
 
